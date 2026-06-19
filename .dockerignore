@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.git
+.env
+npm-debug.log*
+README.md
+PRD.md
+customer.md
+architecture.md
+tasks.md
+AGENTS.md
+ENHANCEMENT_PLAN.md
