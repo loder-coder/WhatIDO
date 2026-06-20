@@ -16,19 +16,19 @@ export const PUBLIC_TOOL_DEFINITIONS: readonly PublicToolDefinition[] = [
     name: "today_what_to_do",
     title: "오늘 뭐하지?",
     description:
-      "현재 위치와 즉시성을 기준으로 오늘 바로 실행 가능한 서울 활동 추천을 준비합니다."
+      "오늘 바로 실행 가능한 서울 활동을 추천합니다. 현재 또는 기준 위치, 날씨, 불쾌지수, 거리, 무료 여부, 혼잡도를 반영하며 예약 필요 활동은 감점합니다. 예: {\"query\":\"오늘 뭐하지?\",\"location\":{\"district\":\"송파구\"},\"result_limit\":3}"
   },
   {
     name: "tomorrow_what_to_do",
     title: "내일 뭐하지?",
     description:
-      "내일 날씨와 이동 부담을 기준으로 하루 계획형 서울 활동 추천을 준비합니다."
+      "내일 하루 또는 반나절 계획에 맞는 서울 활동을 추천합니다. 내일 예보, 시간대 적합성, 이동 부담, 무료 여부, 예약 리스크를 반영합니다. 예: {\"query\":\"내일 아이랑 뭐하지?\",\"preferred_time_of_day\":\"afternoon\"}"
   },
   {
     name: "weekend_what_to_do",
     title: "이번 주말 뭐하지?",
     description:
-      "주말 예보와 무료 여부를 더 넓은 서울 탐색 범위에 반영한 추천을 준비합니다."
+      "다가오는 토요일/일요일 주말 활동을 추천합니다. 서울 전역 후보를 허용하고 날씨 비교, 무료 여부, 혼잡도, Plan B 필요성을 반영합니다. 예: {\"query\":\"이번 주말 무료 데이트 뭐하지?\"}"
   }
 ];
 

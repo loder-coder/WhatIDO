@@ -1,0 +1,6 @@
+{
+  "relaxed": 100,
+  "normal": 80,
+  "crowded": 30,
+  "unknown": 60
+}

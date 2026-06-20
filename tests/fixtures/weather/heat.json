@@ -1,0 +1,7 @@
+{
+  "temperatureC": 34,
+  "humidityPercent": 68,
+  "precipitationProbability": 20,
+  "discomfortIndex": 83,
+  "recommendationBias": "indoor"
+}

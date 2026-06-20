@@ -8,7 +8,7 @@ import { getHealthStatus } from "./server/health.js";
 async function main() {
   const config = loadEnv();
   const logger = createLogger(config);
-  const services = createServiceContainer();
+  const services = createServiceContainer(config);
   const { server, tools } = createMcpServer({ config, logger, services });
   const health = getHealthStatus(config, tools);
 
@@ -36,7 +36,7 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  const fallbackLogger = createLogger({ LOG_LEVEL: "error" });
+  const fallbackLogger = createLogger(loadEnv({ NODE_ENV: "development", LOG_LEVEL: "error", MOCK_PROVIDERS: "true" }));
   fallbackLogger.error({ error }, "MCP server failed to start");
   process.exit(1);
 });

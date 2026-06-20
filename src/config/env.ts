@@ -15,9 +15,17 @@ const EnvSchema = z
       .string()
       .optional()
       .transform((value) => value === undefined || value.toLowerCase() === "true"),
+    PORT: z.coerce.number().int().positive().default(3000),
+    KMA_BASE_URL: z.string().url().optional(),
+    KMA_SERVICE_KEY: z.string().optional(),
     KMA_API_KEY: z.string().optional(),
+    CULTURE_PORTAL_BASE_URL: z.string().url().optional(),
+    CULTURE_PORTAL_SERVICE_KEY: z.string().optional(),
     CULTURE_PORTAL_API_KEY: z.string().optional(),
+    SEOUL_OPEN_DATA_BASE_URL: z.string().url().optional(),
     SEOUL_OPEN_DATA_API_KEY: z.string().optional(),
+    SEOUL_CITY_DATA_BASE_URL: z.string().url().optional(),
+    SEOUL_CITY_DATA_API_KEY: z.string().optional(),
     SEOUL_REALTIME_CITY_DATA_API_KEY: z.string().optional(),
     CACHE_BACKEND: z.enum(["memory", "redis"]).default("memory"),
     REDIS_URL: z.string().url().optional()
@@ -28,10 +36,11 @@ const EnvSchema = z
     }
 
     const requiredKeys = [
-      "KMA_API_KEY",
-      "CULTURE_PORTAL_API_KEY",
+      "KMA_SERVICE_KEY",
+      "CULTURE_PORTAL_SERVICE_KEY",
       "SEOUL_OPEN_DATA_API_KEY",
-      "SEOUL_REALTIME_CITY_DATA_API_KEY"
+      "SEOUL_CITY_DATA_API_KEY",
+      "REDIS_URL"
     ] as const;
 
     for (const key of requiredKeys) {
@@ -48,16 +57,24 @@ const EnvSchema = z
 export type AppConfig = z.infer<typeof EnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppConfig {
-  return EnvSchema.parse(source);
+  const parsed = EnvSchema.parse(source);
+  return {
+    ...parsed,
+    KMA_SERVICE_KEY: parsed.KMA_SERVICE_KEY ?? parsed.KMA_API_KEY,
+    CULTURE_PORTAL_SERVICE_KEY:
+      parsed.CULTURE_PORTAL_SERVICE_KEY ?? parsed.CULTURE_PORTAL_API_KEY,
+    SEOUL_CITY_DATA_API_KEY:
+      parsed.SEOUL_CITY_DATA_API_KEY ?? parsed.SEOUL_REALTIME_CITY_DATA_API_KEY
+  };
 }
 
 export function getSecretReadiness(config: AppConfig) {
   return {
-    kmaApiKey: Boolean(config.KMA_API_KEY),
-    culturePortalApiKey: Boolean(config.CULTURE_PORTAL_API_KEY),
+    kmaApiKey: Boolean(config.KMA_SERVICE_KEY),
+    culturePortalApiKey: Boolean(config.CULTURE_PORTAL_SERVICE_KEY),
     seoulOpenDataApiKey: Boolean(config.SEOUL_OPEN_DATA_API_KEY),
     seoulRealtimeCityDataApiKey: Boolean(
-      config.SEOUL_REALTIME_CITY_DATA_API_KEY
+      config.SEOUL_CITY_DATA_API_KEY
     )
   };
 }

@@ -1,0 +1,12 @@
+[
+  {
+    "title": "무료 기획 전시",
+    "priceText": "무료",
+    "environment": "indoor"
+  },
+  {
+    "title": "유료 공연",
+    "priceText": "30,000원",
+    "environment": "indoor"
+  }
+]
