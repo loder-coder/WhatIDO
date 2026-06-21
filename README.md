@@ -619,6 +619,20 @@ create_activity_calendar_event
 
 서울에서 시작해 수도권, 전국 지자체 열린데이터, 한국관광공사 API로 확장합니다.
 
+## PlayMCP Streamable HTTP
+
+The PlayMCP Remote MCP URL is `https://<deployment-host>/mcp`. The server uses
+stateless MCP Streamable HTTP and supports `initialize`, `tools/list`, and
+`tools/call` for the three public recommendation tools. It does not retain MCP
+sessions or user state between requests.
+
+`GET /health` returns `{ "status": "ok" }`. The container listens on `0.0.0.0`
+and uses `PORT` (default `8080`), so it starts with:
+
+```bash
+npm start
+```
+
 ## Documentation
 
 프로젝트의 상세 문서는 다음 파일을 참고합니다.

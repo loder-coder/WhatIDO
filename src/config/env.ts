@@ -15,7 +15,7 @@ const EnvSchema = z
       .string()
       .optional()
       .transform((value) => value === undefined || value.toLowerCase() === "true"),
-    PORT: z.coerce.number().int().positive().default(3000),
+    PORT: z.coerce.number().int().positive().default(8080),
     KMA_BASE_URL: z.string().url().optional(),
     KMA_SERVICE_KEY: z.string().optional(),
     KMA_API_KEY: z.string().optional(),
