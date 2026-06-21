@@ -12,6 +12,12 @@ import {
 } from "./toolResponse.js";
 import type { TransportMode } from "../services/location/locationTypes.js";
 import { createFallbackRecommendations } from "../services/recommendation/fallbackRecommendations.js";
+import { withTimeout } from "../utils/timeout.js";
+
+// PlayMCP requires tool p99 latency within three seconds. Leave a small margin
+// for HTTP/MCP serialization while keeping provider failures on the normal
+// partial-success/error response path.
+const TOOL_RESPONSE_TIMEOUT_MS = 2_800;
 
 export async function runRecommendationTool(
   intent: Intent,
@@ -22,6 +28,7 @@ export async function runRecommendationTool(
   context.logger.info({ tool: `${intent}_what_to_do` }, "MCP tool invoked");
 
   try {
+    return await withTimeout((async () => {
     const now = input.requestedAt ? new Date(input.requestedAt) : new Date();
     const window = getIntentDateWindow(intent, now);
     const locationInput = input.location ?? {};
@@ -104,6 +111,7 @@ export async function runRecommendationTool(
         extra: getIntentExtra(intent, weather.risk)
       })
     );
+    })(), TOOL_RESPONSE_TIMEOUT_MS, "Recommendation request timed out");
   } catch (error) {
     return toMcpTextResponse(createErrorEnvelope({ intent, requestId: context.requestId, error }));
   }

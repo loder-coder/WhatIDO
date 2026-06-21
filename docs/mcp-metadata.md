@@ -9,6 +9,15 @@
 - Transport: Stateless MCP Streamable HTTP (`POST /mcp`)
 - Health endpoint: `GET /health`
 
+## PlayMCP guide compliance (2026-06-12)
+
+- MCP SDK protocol negotiation supports `2025-03-26` through `2025-11-25`.
+- The public endpoint is Remote MCP over Streamable HTTP; no STDIO or legacy SSE transport is exposed.
+- A fresh MCP server and transport are created for each request, with no MCP session ID or user session storage.
+- The server name and all three tool names avoid the reserved `kakao` string.
+- The tool-response deadline is 2.8 seconds, leaving transport overhead below the 3-second p99 target.
+- Tool responses are composed from normalized recommendation data; provider payloads and internal errors are not exposed directly.
+
 ## Value proposition
 
 뭐하지?는 사용자의 “오늘 뭐하지?”, “내일 뭐하지?”, “이번 주말 뭐하지?” 질문을 날씨, 불쾌지수, 거리, 무료 여부, 혼잡도 기반의 행동 가능한 추천으로 바꾸는 Agentic AI MCP Server이다.
