@@ -5,6 +5,7 @@ import type { AppConfig } from "../config/env.js";
 import type { AppLogger } from "../observability/logger.js";
 import type { ServiceContainer } from "../services/index.js";
 import { createMcpServer } from "../server/createMcpServer.js";
+import type { HealthStatus } from "../server/health.js";
 
 const MCP_PATH = "/mcp";
 const HEALTH_PATH = "/health";
@@ -13,6 +14,7 @@ export interface HttpServerDependencies {
   readonly config: AppConfig;
   readonly logger: AppLogger;
   readonly services: ServiceContainer;
+  readonly health?: HealthStatus;
 }
 
 function writeJson(response: ServerResponse, statusCode: number, body: unknown): void {
@@ -75,7 +77,7 @@ export function createHttpServer(dependencies: HttpServerDependencies): Server {
     }
 
     if (request.method === "GET" && request.url === HEALTH_PATH) {
-      writeJson(response, 200, { status: "ok" });
+      writeJson(response, 200, dependencies.health ?? { status: "ok" });
       return;
     }
 

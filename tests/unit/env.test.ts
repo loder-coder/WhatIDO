@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../../src/config/env.js";
+import { getHealthStatus } from "../../src/server/health.js";
+
+const productionProviderKeys = {
+  KMA_SERVICE_KEY: "kma-key",
+  CULTURE_PORTAL_SERVICE_KEY: "culture-key",
+  SEOUL_OPEN_DATA_API_KEY: "open-data-key",
+  SEOUL_CITY_DATA_API_KEY: "city-data-key"
+};
 
 describe("loadEnv", () => {
   it("allows local development without external API keys", () => {
@@ -22,5 +30,58 @@ describe("loadEnv", () => {
         MOCK_PROVIDERS: "false"
       })
     ).toThrow();
+  });
+
+  it("allows production mock mode without provider secrets", () => {
+    expect(() =>
+      loadEnv({
+        NODE_ENV: "production",
+        LOG_LEVEL: "info",
+        MOCK_PROVIDERS: "true"
+      })
+    ).not.toThrow();
+  });
+
+  it("requires REDIS_URL only when the production cache backend is redis", () => {
+    expect(() =>
+      loadEnv({
+        NODE_ENV: "production",
+        LOG_LEVEL: "info",
+        MOCK_PROVIDERS: "false",
+        CACHE_BACKEND: "memory",
+        ...productionProviderKeys
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      loadEnv({
+        NODE_ENV: "production",
+        LOG_LEVEL: "info",
+        MOCK_PROVIDERS: "false",
+        CACHE_BACKEND: "redis",
+        ...productionProviderKeys
+      })
+    ).toThrow("REDIS_URL is required when CACHE_BACKEND=redis");
+  });
+
+  it("provides a degraded configuration for the HTTP health safety net", () => {
+    const config = loadEnv(
+      {
+        NODE_ENV: "production",
+        LOG_LEVEL: "info",
+        MOCK_PROVIDERS: "false",
+        CACHE_BACKEND: "memory"
+      },
+      { allowMissingProductionSecrets: true }
+    );
+
+    const health = getHealthStatus(config, []);
+    expect(health.status).toBe("degraded");
+    expect(health.missingConfiguration).toEqual([
+      "KMA_SERVICE_KEY",
+      "CULTURE_PORTAL_SERVICE_KEY",
+      "SEOUL_OPEN_DATA_API_KEY",
+      "SEOUL_CITY_DATA_API_KEY"
+    ]);
   });
 });

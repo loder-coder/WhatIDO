@@ -14,9 +14,9 @@
 ## Quality
 
 - [x] `npm ci`
-- [x] `npm run typecheck`
-- [x] `npm run build`
-- [x] `npm test`
+- [ ] `npm run typecheck` — blocked by unrelated weather module type errors.
+- [ ] `npm run build` — blocked by the same weather module type errors.
+- [ ] `npm test` — four unrelated weather unit tests are failing.
 - [x] Secret values are not committed.
 - [x] Required env vars are documented in `.env.example` and `env_we_need.md`.
 
@@ -26,6 +26,8 @@
 - [x] `.dockerignore` exists.
 - [x] README includes PlayMCP in KC deployment steps.
 - [x] Local MCP discovery and tool smoke tests are automated.
+- [x] Stateless Streamable HTTP `initialize` and `tools/list` are automated.
+- [x] `/health` reports missing production configuration as `degraded`.
 - [ ] Docker image build in a Docker-enabled environment.
 - [ ] PlayMCP deployment URL.
 - [ ] PlayMCP screenshots.

@@ -1951,7 +1951,7 @@ sequenceDiagram
 
 ```text
 NODE_ENV=production
-PORT=3000
+PORT=8080
 LOG_LEVEL=info
 CACHE_BACKEND=redis
 REDIS_URL=...
@@ -1973,6 +1973,17 @@ Health check 항목:
 - production secret 존재
 
 ---
+
+## Current transport deployment note
+
+The implementation exposes a stateless MCP Streamable HTTP endpoint at
+`POST /mcp` and a health endpoint at `GET /health`. The container listens on
+`0.0.0.0:${PORT}` with `PORT=8080` by default. MCP server and transport
+instances are created per request, so no MCP session or user state is retained.
+
+When production non-mock provider secrets are absent, the server still listens
+and `/health` reports `status: "degraded"` with `missingConfiguration`. This is
+intentional operational visibility, not a ready-to-serve provider configuration.
 
 # 15. Observability
 

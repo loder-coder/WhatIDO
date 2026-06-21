@@ -6,6 +6,8 @@
 - Type: PlayMCP MCP Server
 - Runtime: Node.js 22 + TypeScript
 - Primary region: Seoul
+- Transport: Stateless MCP Streamable HTTP (`POST /mcp`)
+- Health endpoint: `GET /health`
 
 ## Value proposition
 
@@ -14,6 +16,10 @@
 이 서비스는 장소 검색이 아니라 여가 의사결정 지원에 집중한다.
 
 ## Public tools
+
+Every public tool declares an English description containing WhatIDO(뭐하지?) and
+the following MCP annotations: `title`, `readOnlyHint: true`,
+`destructiveHint: false`, `openWorldHint: true`, and `idempotentHint: true`.
 
 ### `today_what_to_do`
 
@@ -69,3 +75,5 @@ Uses:
 - Missing data is reported through `warnings` and `missing_data`.
 - Mock mode works without API keys.
 - Secrets are loaded from environment variables only.
+- Missing non-mock production secrets return a degraded health response instead
+  of preventing the HTTP server from listening.

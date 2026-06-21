@@ -3,8 +3,7 @@ import { z } from "zod";
 
 loadDotEnv();
 
-const EnvSchema = z
-  .object({
+const BaseEnvSchema = z.object({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -29,9 +28,10 @@ const EnvSchema = z
     SEOUL_REALTIME_CITY_DATA_API_KEY: z.string().optional(),
     CACHE_BACKEND: z.enum(["memory", "redis"]).default("memory"),
     REDIS_URL: z.string().url().optional()
-  })
-  .superRefine((env, context) => {
-    if (env.NODE_ENV !== "production") {
+  });
+
+const EnvSchema = BaseEnvSchema.superRefine((env, context) => {
+    if (env.NODE_ENV !== "production" || env.MOCK_PROVIDERS) {
       return;
     }
 
@@ -39,8 +39,7 @@ const EnvSchema = z
       "KMA_SERVICE_KEY",
       "CULTURE_PORTAL_SERVICE_KEY",
       "SEOUL_OPEN_DATA_API_KEY",
-      "SEOUL_CITY_DATA_API_KEY",
-      "REDIS_URL"
+      "SEOUL_CITY_DATA_API_KEY"
     ] as const;
 
     for (const key of requiredKeys) {
@@ -52,12 +51,29 @@ const EnvSchema = z
         });
       }
     }
+
+    if (env.CACHE_BACKEND === "redis" && !env.REDIS_URL) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["REDIS_URL"],
+        message: "REDIS_URL is required when CACHE_BACKEND=redis"
+      });
+    }
   });
 
-export type AppConfig = z.infer<typeof EnvSchema>;
+export type AppConfig = z.infer<typeof BaseEnvSchema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = EnvSchema.parse(source);
+export interface LoadEnvOptions {
+  readonly allowMissingProductionSecrets?: boolean;
+}
+
+export function loadEnv(
+  source: NodeJS.ProcessEnv = process.env,
+  options: LoadEnvOptions = {}
+): AppConfig {
+  const parsed = options.allowMissingProductionSecrets
+    ? BaseEnvSchema.parse(source)
+    : EnvSchema.parse(source);
   return {
     ...parsed,
     KMA_SERVICE_KEY: parsed.KMA_SERVICE_KEY ?? parsed.KMA_API_KEY,

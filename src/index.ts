@@ -6,19 +6,19 @@ import { createMcpServer } from "./server/createMcpServer.js";
 import { getHealthStatus } from "./server/health.js";
 
 async function main() {
-  const config = loadEnv();
+  // Missing production secrets are surfaced through /health instead of preventing
+  // the container from opening its HTTP port and hiding the configuration error.
+  const config = loadEnv(process.env, { allowMissingProductionSecrets: true });
   const logger = createLogger(config);
   const services = createServiceContainer(config);
   const { tools } = createMcpServer({ config, logger, services });
   const health = getHealthStatus(config, tools);
 
-  if (health.status === "fail") {
-    logger.error({ health }, "MCP server health check failed");
-    process.exitCode = 1;
-    return;
+  if (health.status === "degraded") {
+    logger.warn({ health }, "MCP server started with degraded configuration");
   }
 
-  const httpServer = createHttpServer({ config, logger, services });
+  const httpServer = createHttpServer({ config, logger, services, health });
 
   const shutdown = (signal: NodeJS.Signals) => {
     logger.info({ signal }, "MCP server shutdown requested");

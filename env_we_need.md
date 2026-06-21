@@ -1,19 +1,39 @@
-# env_we_need.md
+# Environment variables
 
-Phase 2~11 구현과 배포에 필요한 환경 변수 요구사항이다. 실제 secret 값은 이 파일에 기록하지 않는다.
+This file documents variable names only. Never commit actual secret values.
 
-| Name | Purpose | Issuer / Source | Mock Replacement |
-|---|---|---|---|
-| `KMA_SERVICE_KEY` | 기상청 초단기실황/단기예보 조회 | 기상청 / 공공데이터포털 | `MOCK_PROVIDERS=true`에서 mock weather 사용 |
-| `SEOUL_OPEN_DATA_API_KEY` | 서울 문화행사 후보 조회 | 서울 열린데이터광장 | `MOCK_PROVIDERS=true`에서 mock event fixture 사용 |
-| `SEOUL_CITY_DATA_API_KEY` | 서울 실시간 도시데이터 혼잡도 조회 | 서울 열린데이터광장 실시간 도시데이터 | `MOCK_PROVIDERS=true`에서 mock congestion 사용 |
-| `CULTURE_PORTAL_SERVICE_KEY` | 문화포털 보조 행사 후보 조회 | 문화포털 / 공공데이터포털 | `MOCK_PROVIDERS=true`에서 provider 결과 없음으로 degrade |
-| `REDIS_URL` | production Redis cache 연결 | 배포 환경 / Redis provider | `CACHE_BACKEND=memory`에서 InMemoryCache 사용 |
+| Variable | Purpose | Required when |
+| --- | --- | --- |
+| `NODE_ENV` | Runtime mode: `development`, `test`, or `production` | Always; defaults to `development` |
+| `PORT` | HTTP listen port | Optional; defaults to `8080` |
+| `LOG_LEVEL` | Structured log level | Optional; defaults to `info` |
+| `MOCK_PROVIDERS` | Enables deterministic mock providers | Optional; defaults to `true` when unset |
+| `CACHE_BACKEND` | `memory` or `redis` | Optional; defaults to `memory` |
+| `REDIS_URL` | Redis connection URL | `NODE_ENV=production` and `CACHE_BACKEND=redis` |
+| `KMA_BASE_URL` | KMA API base URL | Provider configuration |
+| `KMA_SERVICE_KEY` | KMA weather API key | Production non-mock mode |
+| `SEOUL_OPEN_DATA_BASE_URL` | Seoul events API base URL | Provider configuration |
+| `SEOUL_OPEN_DATA_API_KEY` | Seoul events API key | Production non-mock mode |
+| `SEOUL_CITY_DATA_BASE_URL` | Seoul city data API base URL | Provider configuration |
+| `SEOUL_CITY_DATA_API_KEY` | Seoul congestion API key | Production non-mock mode |
+| `CULTURE_PORTAL_BASE_URL` | Culture Portal API base URL | Provider configuration |
+| `CULTURE_PORTAL_SERVICE_KEY` | Culture Portal API key | Production non-mock mode |
 
-Compatibility aliases currently accepted by the app:
+Compatibility aliases accepted by the server:
 
-| Alias | Canonical Name |
-|---|---|
+| Alias | Canonical variable |
+| --- | --- |
 | `KMA_API_KEY` | `KMA_SERVICE_KEY` |
 | `CULTURE_PORTAL_API_KEY` | `CULTURE_PORTAL_SERVICE_KEY` |
 | `SEOUL_REALTIME_CITY_DATA_API_KEY` | `SEOUL_CITY_DATA_API_KEY` |
+
+## Production readiness
+
+For `NODE_ENV=production` with `MOCK_PROVIDERS` not set to `true`, the four
+provider keys are required. `REDIS_URL` is required only with
+`CACHE_BACKEND=redis`.
+
+The server intentionally keeps its HTTP port open when these secrets are absent.
+`GET /health` then returns `200`, `status: "degraded"`, and the exact names in
+`missingConfiguration`. Add secrets as PlayMCP runtime secrets, redeploy, and
+confirm the health status is `ok` before registering the Remote MCP URL.
