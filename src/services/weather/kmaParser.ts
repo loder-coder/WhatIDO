@@ -62,7 +62,11 @@ export function normalizeItems(response: KmaApiResponse): readonly KmaItem[] {
     return [];
   }
 
-  return Array.isArray(rawItems) ? rawItems : [rawItems];
+  return isKmaItemArray(rawItems) ? rawItems : [rawItems];
+}
+
+function isKmaItemArray(value: KmaItem | readonly KmaItem[]): value is readonly KmaItem[] {
+  return Array.isArray(value);
 }
 
 function numberFromCategory(

@@ -2,9 +2,13 @@ import type {
   DiscomfortIndex,
   PrecipitationType,
   WeatherBias,
-  WeatherRisk,
   WeatherSuitability
 } from "./weatherTypes.js";
+
+export interface LegacyWeatherRisk {
+  readonly level: "low" | "moderate" | "high";
+  readonly codes: readonly string[];
+}
 
 export interface WeatherSuitabilityInput {
   readonly temperatureC: number | null;
@@ -66,7 +70,7 @@ export function classifyWeatherSuitability(
 
 export function classifyWeatherRisk(
   input: WeatherSuitabilityInput
-): WeatherRisk {
+): LegacyWeatherRisk {
   const codes: string[] = [];
 
   if (
