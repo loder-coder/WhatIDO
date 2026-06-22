@@ -53,7 +53,7 @@ export function toRankedRecommendation(input: {
   return {
     id: input.candidate.id,
     rank: input.rank,
-    title: input.candidate.title,
+    title: input.candidate.source.provider === "mock" ? `[MOCK] ${input.candidate.title.replace(/^\[MOCK\]\s*/, "")}` : input.candidate.title,
     category: input.candidate.category,
     venue: input.candidate.venue,
     district: input.candidate.district,

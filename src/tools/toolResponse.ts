@@ -33,6 +33,11 @@ export interface ToolEnvelope {
     readonly request_id: string;
     readonly generated_at: string;
     readonly data_freshness: Record<string, string>;
+    readonly mock_data: {
+      readonly enabled: boolean;
+      readonly notice: string | null;
+      readonly weather_scenario: string | null;
+    };
   };
   readonly today_constraints?: Record<string, unknown>;
   readonly tomorrow_plan?: Record<string, unknown>;
@@ -73,7 +78,8 @@ export function createErrorEnvelope(input: {
     metadata: {
       request_id: input.requestId,
       generated_at: formatSeoulIso(now),
-      data_freshness: {}
+      data_freshness: {},
+      mock_data: { enabled: false, notice: null, weather_scenario: null }
     }
   };
 }
@@ -87,6 +93,8 @@ export function createSuccessEnvelope(input: {
   readonly recommendations: readonly RankedRecommendation[];
   readonly warnings: readonly UserFacingError[];
   readonly missingData: readonly string[];
+  readonly isMockData: boolean;
+  readonly mockWeatherScenario: string | undefined;
     readonly extra?: Partial<Pick<ToolEnvelope, "today_constraints" | "tomorrow_plan" | "weekend_plan" | "weekend_summary">>;
 }): ToolEnvelope {
   const status: ToolStatus =
@@ -117,9 +125,16 @@ export function createSuccessEnvelope(input: {
       request_id: input.requestId,
       generated_at: formatSeoulIso(new Date()),
       data_freshness: {
-        weather: input.weather.source.cached ? "cached" : "fresh",
-        events: "fresh_or_mock",
-        congestion: input.missingData.includes("congestion") ? "missing" : "fresh_or_mock"
+        weather: input.isMockData ? "mock" : input.weather.source.cached ? "cached" : "fresh",
+        events: input.isMockData ? "mock" : "fresh",
+        congestion: input.missingData.includes("congestion") ? "missing" : input.isMockData ? "mock" : "fresh"
+      },
+      mock_data: {
+        enabled: input.isMockData,
+        notice: input.isMockData
+          ? "\uD604\uC7AC \uACB0\uACFC\uB294 \uB370\uBAA8\uC6A9 \uBAA9\uC5C5 \uB370\uC774\uD130\uC785\uB2C8\uB2E4. \uC2E4\uC81C \uB0A0\uC528\u00B7\uD589\uC0AC\u00B7\uD63C\uC7A1\uB3C4 \uC815\uBCF4\uAC00 \uC544\uB2D9\uB2C8\uB2E4."
+          : null,
+        weather_scenario: input.isMockData ? input.mockWeatherScenario ?? "intent_default" : null
       }
     },
     ...input.extra

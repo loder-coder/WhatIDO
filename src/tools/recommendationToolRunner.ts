@@ -108,6 +108,8 @@ export async function runRecommendationTool(
         recommendations,
         warnings,
         missingData: Array.from(new Set(missingData)),
+        isMockData: context.config.MOCK_PROVIDERS,
+        mockWeatherScenario: context.config.MOCK_WEATHER_SCENARIO,
         extra: getIntentExtra(intent, weather.risk)
       })
     );

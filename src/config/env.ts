@@ -14,6 +14,7 @@ const BaseEnvSchema = z.object({
       .string()
       .optional()
       .transform((value) => value === undefined || value.toLowerCase() === "true"),
+    MOCK_WEATHER_SCENARIO: z.enum(["heat", "rain", "pleasant", "cold"]).optional(),
     PORT: z.coerce.number().int().positive().default(8080),
     KMA_BASE_URL: z.string().url().optional(),
     KMA_SERVICE_KEY: z.string().optional(),

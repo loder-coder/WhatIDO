@@ -63,7 +63,30 @@ export class SeoulCityDataProvider {
   }
 }
 
+function createScenarioCongestion(
+  areaName: string,
+  level: "crowded" | "relaxed"
+): CongestionResult {
+  const isCrowded = level === "crowded";
+  return {
+    areaName,
+    level,
+    score: scoreCongestion(level),
+    confidence: "high",
+    populationMin: isCrowded ? 28000 : 1000,
+    populationMax: isCrowded ? 32000 : 3000,
+    message: isCrowded ? "Mock crowded scenario" : "Mock relaxed scenario",
+    source: { provider: "mock", fetchedAt: formatSeoulIso(new Date()), cached: false }
+  };
+}
+
 export function getMockCongestion(areaName: string): CongestionResult {
+  if (areaName === "MOCK_CROWDED_AREA") {
+    return createScenarioCongestion(areaName, "crowded");
+  }
+  if (areaName === "MOCK_RELAXED_AREA") {
+    return createScenarioCongestion(areaName, "relaxed");
+  }
   const level = /여의도|홍대|명동/.test(areaName) ? "crowded" : "normal";
   return {
     areaName,

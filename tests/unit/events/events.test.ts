@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { InMemoryCache } from "../../../src/services/cache/InMemoryCache.js";
 import { CulturePortalProvider, parseCulturePortalItems } from "../../../src/services/events/CulturePortalProvider.js";
 import { EventService } from "../../../src/services/events/EventService.js";
-import { parseSeoulEventRows, SeoulEventProvider } from "../../../src/services/events/SeoulEventProvider.js";
+import { getMockSeoulEvents, parseSeoulEventRows, SeoulEventProvider } from "../../../src/services/events/SeoulEventProvider.js";
 import { deduplicateCandidates, filterCandidatesByDate } from "../../../src/services/events/eventFilters.js";
 import { inferEnvironment } from "../../../src/services/events/environmentInference.js";
 import { parsePriceText } from "../../../src/services/events/priceParser.js";
@@ -112,5 +112,25 @@ describe("Event Service", () => {
     });
     expect(candidates.length).toBeGreaterThan(0);
     expect(candidates.every((candidate) => candidate.priceType === "free")).toBe(true);
+  });
+
+  it("provides mock candidates for indoor, outdoor, price, distance, and congestion scenarios", () => {
+    const candidates = getMockSeoulEvents({
+      start: new Date("2026-06-20T10:00:00+09:00"),
+      end: new Date("2026-06-20T23:59:59+09:00"),
+      district: "송파구",
+      freePreferred: false,
+      intent: "today",
+      now: new Date("2026-06-20T10:00:00+09:00")
+    });
+
+    expect(candidates).toHaveLength(11);
+    expect(candidates.filter((candidate) => candidate.environment === "indoor")).not.toHaveLength(0);
+    expect(candidates.filter((candidate) => candidate.environment === "outdoor")).toHaveLength(4);
+    expect(candidates.some((candidate) => candidate.priceType === "free")).toBe(true);
+    expect(candidates.some((candidate) => candidate.priceType === "paid")).toBe(true);
+    expect(candidates.some((candidate) => candidate.priceType === "unknown")).toBe(true);
+    expect(candidates.some((candidate) => candidate.id === "mock-crowded-outdoor-market")).toBe(true);
+    expect(candidates.some((candidate) => candidate.id === "mock-relaxed-outdoor-walk-free")).toBe(true);
   });
 });

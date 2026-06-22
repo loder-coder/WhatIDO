@@ -88,6 +88,47 @@ export class KmaWeatherProvider {
   }
 
   private getMockWeather(requestInput: WeatherRequest): KmaForecastPoint {
+    const scenario = this.config.MOCK_WEATHER_SCENARIO;
+    if (scenario === "heat") {
+      return {
+        temperatureC: 34,
+        humidityPercent: 68,
+        precipitationProbability: 20,
+        precipitationType: "none",
+        sky: "hot",
+        windSpeedMs: 1.2
+      };
+    }
+    if (scenario === "rain") {
+      return {
+        temperatureC: 27,
+        humidityPercent: 75,
+        precipitationProbability: 70,
+        precipitationType: "rain",
+        sky: "rain",
+        windSpeedMs: 1.8
+      };
+    }
+    if (scenario === "pleasant") {
+      return {
+        temperatureC: 22,
+        humidityPercent: 45,
+        precipitationProbability: 10,
+        precipitationType: "none",
+        sky: "clear",
+        windSpeedMs: 1.5
+      };
+    }
+    if (scenario === "cold") {
+      return {
+        temperatureC: -7,
+        humidityPercent: 40,
+        precipitationProbability: 10,
+        precipitationType: "none",
+        sky: "clear",
+        windSpeedMs: 2.8
+      };
+    }
     if (requestInput.mode === "weekend") {
       return {
         temperatureC: 29,

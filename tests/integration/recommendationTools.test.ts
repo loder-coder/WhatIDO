@@ -31,7 +31,11 @@ function parseToolResponse(response: Awaited<ReturnType<typeof todayWhatToDoHand
     recommendations: unknown[];
     tomorrow_plan?: unknown;
     weekend_summary?: unknown;
-    metadata?: { request_id?: string; generated_at?: string };
+    metadata?: {
+      request_id?: string;
+      generated_at?: string;
+      mock_data?: { enabled?: boolean; notice?: string | null; weather_scenario?: string | null };
+    };
   };
 }
 
@@ -75,6 +79,40 @@ describe("Recommendation public tools", () => {
     expect(body.recommendations.length).toBeGreaterThan(0);
     expect(body.metadata?.request_id).toBeTruthy();
     expect(body.metadata?.generated_at).toBeTruthy();
+  });
+
+  it("returns five mock recommendations when the requested result limit is five", async () => {
+    const body = parseToolResponse(
+      await todayWhatToDoHandler(
+        {
+          query: "오늘 무료로 뭐하지?",
+          location: { district: "송파구", latitude: 37.5145, longitude: 127.1059 },
+          preferences: { free_preferred: true },
+          result_limit: 5,
+          requestedAt: "2026-06-20T10:00:00+09:00"
+        },
+        dependencies()
+      )
+    );
+
+    expect(body.recommendations).toHaveLength(5);
+  });
+
+  it("marks mock-provider responses as mock data", async () => {
+    const body = parseToolResponse(
+      await todayWhatToDoHandler(
+        {
+          query: "오늘 뭐하지?",
+          location: { district: "송파구", latitude: 37.5145, longitude: 127.1059 },
+          result_limit: 3,
+          requestedAt: "2026-06-20T10:00:00+09:00"
+        },
+        dependencies()
+      )
+    );
+
+    expect(body.metadata?.mock_data?.enabled).toBe(true);
+    expect(body.metadata?.mock_data?.notice).toBeTruthy();
   });
 
   it("tomorrow_what_to_do returns tomorrow plan", async () => {

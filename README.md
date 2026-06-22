@@ -40,7 +40,7 @@ Requirements: Node.js 22 LTS and npm.
 
 ```bash
 npm install
-MOCK_PROVIDERS=true CACHE_BACKEND=memory npm run dev
+MOCK_PROVIDERS=true MOCK_WEATHER_SCENARIO=pleasant CACHE_BACKEND=memory npm run dev
 ```
 
 For the production artifact:
@@ -59,6 +59,7 @@ Copy `.env.example` for local development. Never commit actual secrets.
 | `NODE_ENV` | Always | `development`, `test`, or `production` |
 | `PORT` | Optional | Defaults to `8080` |
 | `MOCK_PROVIDERS` | Optional | `true` uses deterministic mock providers; do not enable by default in production |
+| `MOCK_WEATHER_SCENARIO` | Optional mock mode only | `heat`, `rain`, `pleasant`, or `cold`; omit it to use the intent-default demo weather |
 | `CACHE_BACKEND` | Optional | `memory` by default; set `redis` only when Redis is configured |
 | `REDIS_URL` | `CACHE_BACKEND=redis` in production | Redis connection URL |
 | `KMA_SERVICE_KEY` | production non-mock | KMA weather provider |
