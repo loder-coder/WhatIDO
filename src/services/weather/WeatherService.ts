@@ -82,7 +82,7 @@ export class WeatherService {
       discomfortLevel: "unknown",
       recommendationBias: "unknown",
       risk: "unknown",
-      source: { provider: "mock", fetchedAt: formatSeoulIso(new Date()), cached: false }
+      source: { provider: "fallback", fetchedAt: formatSeoulIso(new Date()), cached: false }
     };
   }
 }

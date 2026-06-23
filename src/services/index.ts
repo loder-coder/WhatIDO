@@ -28,8 +28,8 @@ export function createServiceContainer(config?: AppConfig): ServiceContainer {
   const effectiveConfig =
     config ??
     ({
-      MOCK_PROVIDERS: true,
-      NODE_ENV: "test",
+      MOCK_PROVIDERS: false,
+      NODE_ENV: "development",
       LOG_LEVEL: "silent",
       CACHE_BACKEND: "memory",
       PORT: 3000
@@ -40,11 +40,7 @@ export function createServiceContainer(config?: AppConfig): ServiceContainer {
     phase: "phase-11-ready",
     cache,
     weather: new WeatherService(new KmaWeatherProvider(effectiveConfig), cache),
-    events: new EventService(
-      new SeoulEventProvider(effectiveConfig),
-      new CulturePortalProvider(effectiveConfig),
-      cache
-    ),
+    events: new EventService(new SeoulEventProvider(effectiveConfig), new CulturePortalProvider(effectiveConfig), cache),
     congestion: new CongestionService(new SeoulCityDataProvider(effectiveConfig), cache),
     location: new LocationService(),
     recommendation: new RecommendationService(new RecommendationEngine(scoring)),

@@ -133,6 +133,22 @@ describe("Recommendation public tools", () => {
     expect(body.recommendations.length).toBeGreaterThan(0);
   });
 
+  it("uses the Seoul default location to fetch weather when no location is supplied", async () => {
+    const body = parseToolResponse(
+      await tomorrowWhatToDoHandler(
+        {
+          query: "내일 뭐하지?",
+          result_limit: 3,
+          requestedAt: "2026-06-20T10:00:00+09:00"
+        },
+        dependencies()
+      )
+    ) as { summary?: { weather?: { temperature_c?: number | null } }; recommendations: unknown[] };
+
+    expect(body.summary?.weather?.temperature_c).not.toBeNull();
+    expect(body.recommendations.length).toBeGreaterThan(0);
+  });
+
   it("weekend_what_to_do returns weekend summary and plan B flag", async () => {
     const body = parseToolResponse(
       await weekendWhatToDoHandler(

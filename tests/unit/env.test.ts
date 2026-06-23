@@ -22,24 +22,24 @@ describe("loadEnv", () => {
     expect(config.MOCK_PROVIDERS).toBe(true);
   });
 
-  it("requires external API keys in production", () => {
-    expect(() =>
-      loadEnv({
-        NODE_ENV: "production",
-        LOG_LEVEL: "info",
-        MOCK_PROVIDERS: "false"
-      })
-    ).toThrow();
+  it("keeps mock providers disabled unless explicitly opted in", () => {
+    const config = loadEnv({ NODE_ENV: "development", LOG_LEVEL: "silent" });
+
+    expect(config.MOCK_PROVIDERS).toBe(false);
   });
 
-  it("allows production mock mode without provider secrets", () => {
+  it("does not require public-data keys in the MCP production runtime", () => {
+    expect(loadEnv({ NODE_ENV: "production", LOG_LEVEL: "info", MOCK_PROVIDERS: "false" }).NODE_ENV).toBe("production");
+  });
+
+  it("rejects production mock mode", () => {
     expect(() =>
       loadEnv({
         NODE_ENV: "production",
         LOG_LEVEL: "info",
         MOCK_PROVIDERS: "true"
       })
-    ).not.toThrow();
+    ).toThrow("MOCK_PROVIDERS must not be enabled in production");
   });
 
   it("requires REDIS_URL only when the production cache backend is redis", () => {
@@ -79,7 +79,6 @@ describe("loadEnv", () => {
     expect(health.status).toBe("degraded");
     expect(health.missingConfiguration).toEqual([
       "KMA_SERVICE_KEY",
-      "CULTURE_PORTAL_SERVICE_KEY",
       "SEOUL_OPEN_DATA_API_KEY",
       "SEOUL_CITY_DATA_API_KEY"
     ]);

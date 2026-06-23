@@ -23,7 +23,6 @@ export function getHealthStatus(
 
   if (config.NODE_ENV === "production" && !config.MOCK_PROVIDERS) {
     if (!productionSecrets.kmaApiKey) missingConfiguration.push("KMA_SERVICE_KEY");
-    if (!productionSecrets.culturePortalApiKey) missingConfiguration.push("CULTURE_PORTAL_SERVICE_KEY");
     if (!productionSecrets.seoulOpenDataApiKey) missingConfiguration.push("SEOUL_OPEN_DATA_API_KEY");
     if (!productionSecrets.seoulRealtimeCityDataApiKey) missingConfiguration.push("SEOUL_CITY_DATA_API_KEY");
     if (config.CACHE_BACKEND === "redis" && !config.REDIS_URL) {

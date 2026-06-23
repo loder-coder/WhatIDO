@@ -1,6 +1,11 @@
 import { calculateHaversineKm, getDistrictCenter, type Coordinates } from "../../utils/geo.js";
 import type { DistanceDestination, DistanceResult, TransportMode } from "./locationTypes.js";
 
+export const SEOUL_DEFAULT_COORDINATES: Coordinates = {
+  latitude: 37.5665,
+  longitude: 126.978
+};
+
 export class LocationService {
   resolveLocation(input: {
     readonly latitude?: number | undefined;
@@ -8,14 +13,18 @@ export class LocationService {
     readonly lat?: number | undefined;
     readonly lng?: number | undefined;
     readonly district?: string | undefined;
-  }): { coordinates: Coordinates | null; district: string | null; approximated: boolean } {
+  }): { coordinates: Coordinates; district: string | null; approximated: boolean } {
     const latitude = input.latitude ?? input.lat;
     const longitude = input.longitude ?? input.lng;
     if (latitude !== undefined && longitude !== undefined) {
       return { coordinates: { latitude, longitude }, district: input.district ?? null, approximated: false };
     }
     const center = getDistrictCenter(input.district);
-    return { coordinates: center, district: input.district ?? null, approximated: center !== null };
+    return {
+      coordinates: center ?? SEOUL_DEFAULT_COORDINATES,
+      district: input.district ?? "서울특별시",
+      approximated: true
+    };
   }
 
   calculateDistances(

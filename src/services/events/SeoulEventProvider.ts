@@ -4,6 +4,7 @@ import { AppError } from "../../errors/AppError.js";
 import { ERROR_CODES } from "../../errors/errorCodes.js";
 import { formatSeoulIso, toSeoulDateString } from "../../utils/dates.js";
 import { withTimeout } from "../../utils/timeout.js";
+import { readUtf8Json } from "../../utils/responseDecoding.js";
 import { inferEnvironment } from "./environmentInference.js";
 import { parsePriceText } from "./priceParser.js";
 import type { ActivityCandidate, EventSearchRequest } from "./eventTypes.js";
@@ -103,8 +104,11 @@ export class SeoulEventProvider {
   constructor(private readonly config: AppConfig) {}
 
   async searchEvents(searchRequest: EventSearchRequest): Promise<ActivityCandidate[]> {
-    if (this.config.MOCK_PROVIDERS || !this.config.SEOUL_OPEN_DATA_API_KEY) {
+    if (this.config.MOCK_PROVIDERS) {
       return getMockSeoulEvents(searchRequest);
+    }
+    if (!this.config.SEOUL_OPEN_DATA_API_KEY) {
+      throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Seoul Open Data" });
     }
     const baseUrl = this.config.SEOUL_OPEN_DATA_BASE_URL ?? "http://openapi.seoul.go.kr:8088";
     const url = `${baseUrl.replace(/\/$/, "")}/${this.config.SEOUL_OPEN_DATA_API_KEY}/json/culturalEventInfo/1/100`;
@@ -115,8 +119,15 @@ export class SeoulEventProvider {
     if (response.statusCode >= 500) {
       throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Seoul Open Data", status: response.statusCode, retryable: true });
     }
-    const body = (await response.body.json()) as { culturalEventInfo?: { row?: SeoulEventRow[] } };
-    return parseSeoulEventRows(body.culturalEventInfo?.row ?? []);
+    if (response.statusCode >= 400) {
+      throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Seoul Open Data", status: response.statusCode });
+    }
+    const body = await readUtf8Json<{ culturalEventInfo?: { row?: SeoulEventRow[] } }>(response.body);
+    const rows = body.culturalEventInfo?.row;
+    if (!Array.isArray(rows)) {
+      throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "Seoul Open Data" });
+    }
+    return parseSeoulEventRows(rows);
   }
 }
 

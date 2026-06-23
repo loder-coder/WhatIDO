@@ -13,7 +13,7 @@ const BaseEnvSchema = z.object({
     MOCK_PROVIDERS: z
       .string()
       .optional()
-      .transform((value) => value === undefined || value.toLowerCase() === "true"),
+      .transform((value) => value?.toLowerCase() === "true"),
     MOCK_WEATHER_SCENARIO: z.enum(["heat", "rain", "pleasant", "cold"]).optional(),
     PORT: z.coerce.number().int().positive().default(8080),
     KMA_BASE_URL: z.string().url().optional(),
@@ -32,25 +32,16 @@ const BaseEnvSchema = z.object({
   });
 
 const EnvSchema = BaseEnvSchema.superRefine((env, context) => {
-    if (env.NODE_ENV !== "production" || env.MOCK_PROVIDERS) {
-      return;
+    if (env.NODE_ENV === "production" && env.MOCK_PROVIDERS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["MOCK_PROVIDERS"],
+        message: "MOCK_PROVIDERS must not be enabled in production"
+      });
     }
 
-    const requiredKeys = [
-      "KMA_SERVICE_KEY",
-      "CULTURE_PORTAL_SERVICE_KEY",
-      "SEOUL_OPEN_DATA_API_KEY",
-      "SEOUL_CITY_DATA_API_KEY"
-    ] as const;
-
-    for (const key of requiredKeys) {
-      if (!env[key]) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key],
-          message: `${key} is required in production`
-        });
-      }
+    if (env.NODE_ENV !== "production") {
+      return;
     }
 
     if (env.CACHE_BACKEND === "redis" && !env.REDIS_URL) {
@@ -75,13 +66,14 @@ export function loadEnv(
   const parsed = options.allowMissingProductionSecrets
     ? BaseEnvSchema.parse(source)
     : EnvSchema.parse(source);
+  if (parsed.NODE_ENV === "production" && parsed.MOCK_PROVIDERS) {
+    throw new Error("MOCK_PROVIDERS must not be enabled in production");
+  }
   return {
     ...parsed,
     KMA_SERVICE_KEY: parsed.KMA_SERVICE_KEY ?? parsed.KMA_API_KEY,
-    CULTURE_PORTAL_SERVICE_KEY:
-      parsed.CULTURE_PORTAL_SERVICE_KEY ?? parsed.CULTURE_PORTAL_API_KEY,
-    SEOUL_CITY_DATA_API_KEY:
-      parsed.SEOUL_CITY_DATA_API_KEY ?? parsed.SEOUL_REALTIME_CITY_DATA_API_KEY
+    CULTURE_PORTAL_SERVICE_KEY: parsed.CULTURE_PORTAL_SERVICE_KEY ?? parsed.CULTURE_PORTAL_API_KEY,
+    SEOUL_CITY_DATA_API_KEY: parsed.SEOUL_CITY_DATA_API_KEY ?? parsed.SEOUL_REALTIME_CITY_DATA_API_KEY
   };
 }
 
@@ -90,8 +82,6 @@ export function getSecretReadiness(config: AppConfig) {
     kmaApiKey: Boolean(config.KMA_SERVICE_KEY),
     culturePortalApiKey: Boolean(config.CULTURE_PORTAL_SERVICE_KEY),
     seoulOpenDataApiKey: Boolean(config.SEOUL_OPEN_DATA_API_KEY),
-    seoulRealtimeCityDataApiKey: Boolean(
-      config.SEOUL_CITY_DATA_API_KEY
-    )
+    seoulRealtimeCityDataApiKey: Boolean(config.SEOUL_CITY_DATA_API_KEY)
   };
 }

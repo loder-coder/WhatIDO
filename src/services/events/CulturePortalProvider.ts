@@ -1,5 +1,10 @@
 import type { AppConfig } from "../../config/env.js";
+import { request } from "undici";
+import { AppError } from "../../errors/AppError.js";
+import { ERROR_CODES } from "../../errors/errorCodes.js";
 import { formatSeoulIso } from "../../utils/dates.js";
+import { toSeoulDateString } from "../../utils/dates.js";
+import { withTimeout } from "../../utils/timeout.js";
 import { inferEnvironment } from "./environmentInference.js";
 import { parsePriceText } from "./priceParser.js";
 import type { ActivityCandidate, EventSearchRequest } from "./eventTypes.js";
@@ -20,6 +25,20 @@ interface CulturePortalItem {
   readonly gpsY?: string;
   readonly url?: string;
   readonly realmName?: string;
+}
+
+interface CulturePortalResponse {
+  readonly response?: { readonly body?: { readonly items?: { readonly item?: CulturePortalItem | readonly CulturePortalItem[] } } };
+  readonly body?: { readonly items?: { readonly item?: CulturePortalItem | readonly CulturePortalItem[] } };
+  readonly items?: readonly CulturePortalItem[];
+}
+
+function readCulturePortalItems(body: CulturePortalResponse): readonly CulturePortalItem[] {
+  const items = body.response?.body?.items?.item ?? body.body?.items?.item ?? body.items;
+  if (items === undefined) {
+    throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "Culture Portal" });
+  }
+  return Array.isArray(items) ? items : [items as CulturePortalItem];
 }
 
 function parseDate(value: string | undefined): string | null {
@@ -73,12 +92,36 @@ export function parseCulturePortalItems(items: readonly CulturePortalItem[]): Ac
 export class CulturePortalProvider {
   constructor(private readonly config: AppConfig) {}
 
-  async searchEvents(_request: EventSearchRequest): Promise<ActivityCandidate[]> {
-    if (this.config.MOCK_PROVIDERS || !this.config.CULTURE_PORTAL_SERVICE_KEY) {
+  async searchEvents(searchRequest: EventSearchRequest): Promise<ActivityCandidate[]> {
+    if (this.config.MOCK_PROVIDERS) {
       return [];
     }
-    // Culture Portal integrations vary by issued endpoint. Keep parsing isolated
-    // and return an empty supplemental set until a concrete endpoint is configured.
-    return [];
+    if (!this.config.CULTURE_PORTAL_SERVICE_KEY) {
+      throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Culture Portal" });
+    }
+    const baseUrl = this.config.CULTURE_PORTAL_BASE_URL ?? "https://www.culture.go.kr/openapi/rest/publicperformancedisplays/period";
+    const url = new URL(baseUrl);
+    url.searchParams.set("serviceKey", this.config.CULTURE_PORTAL_SERVICE_KEY);
+    url.searchParams.set("from", toSeoulDateString(searchRequest.start).replaceAll("-", ""));
+    url.searchParams.set("to", toSeoulDateString(searchRequest.end).replaceAll("-", ""));
+    url.searchParams.set("cPage", "1");
+    url.searchParams.set("rows", "100");
+    url.searchParams.set("sido", "11");
+
+    const response = await withTimeout(
+      request(url, { method: "GET", headers: { accept: "application/json" } }),
+      3000,
+      "Culture Portal request timed out"
+    );
+    if (response.statusCode === 401 || response.statusCode === 403) {
+      throw new AppError({ code: ERROR_CODES.AUTH_ERROR, provider: "Culture Portal", status: response.statusCode });
+    }
+    if (response.statusCode >= 500) {
+      throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Culture Portal", status: response.statusCode, retryable: true });
+    }
+    if (response.statusCode >= 400) {
+      throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Culture Portal", status: response.statusCode });
+    }
+    return parseCulturePortalItems(readCulturePortalItems((await response.body.json()) as CulturePortalResponse));
   }
 }

@@ -4,6 +4,7 @@ import { AppError } from "../../errors/AppError.js";
 import { ERROR_CODES } from "../../errors/errorCodes.js";
 import { formatSeoulIso } from "../../utils/dates.js";
 import { withTimeout } from "../../utils/timeout.js";
+import { readUtf8Json } from "../../utils/responseDecoding.js";
 import { normalizeCongestionLevel, scoreCongestion } from "./congestionScore.js";
 import type { CongestionResult } from "./congestionTypes.js";
 
@@ -47,8 +48,11 @@ export class SeoulCityDataProvider {
   constructor(private readonly config: AppConfig) {}
 
   async getCongestion(areaName: string): Promise<CongestionResult> {
-    if (this.config.MOCK_PROVIDERS || !this.config.SEOUL_CITY_DATA_API_KEY) {
+    if (this.config.MOCK_PROVIDERS) {
       return getMockCongestion(areaName);
+    }
+    if (!this.config.SEOUL_CITY_DATA_API_KEY) {
+      throw new AppError({ code: ERROR_CODES.CONGESTION_UNAVAILABLE, provider: "Seoul Realtime City Data" });
     }
     const baseUrl = this.config.SEOUL_CITY_DATA_BASE_URL ?? "http://openapi.seoul.go.kr:8088";
     const url = `${baseUrl.replace(/\/$/, "")}/${this.config.SEOUL_CITY_DATA_API_KEY}/json/citydata/1/5/${encodeURIComponent(areaName)}`;
@@ -59,7 +63,14 @@ export class SeoulCityDataProvider {
     if (response.statusCode >= 500) {
       throw new AppError({ code: ERROR_CODES.CONGESTION_UNAVAILABLE, provider: "Seoul Realtime City Data", status: response.statusCode, retryable: true });
     }
-    return parseCityDataResponse((await response.body.json()) as CityDataResponse);
+    if (response.statusCode >= 400) {
+      throw new AppError({ code: ERROR_CODES.CONGESTION_UNAVAILABLE, provider: "Seoul Realtime City Data", status: response.statusCode });
+    }
+    const result = parseCityDataResponse(await readUtf8Json<CityDataResponse>(response.body));
+    if (result.areaName === null) {
+      throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "Seoul Realtime City Data" });
+    }
+    return result;
   }
 }
 

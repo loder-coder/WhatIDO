@@ -55,7 +55,7 @@ export interface WeatherRequest {
 }
 
 export interface WeatherSourceMetadata {
-  readonly provider: "KMA" | "mock";
+  readonly provider: "KMA" | "mock" | "fallback";
   readonly fetchedAt: string;
   readonly cached: boolean;
 }

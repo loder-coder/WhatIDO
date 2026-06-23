@@ -3,14 +3,17 @@ import type { AppConfig } from "../../config/env.js";
 import { AppError } from "../../errors/AppError.js";
 import { ERROR_CODES } from "../../errors/errorCodes.js";
 import { withTimeout } from "../../utils/timeout.js";
-import { formatSeoulIso } from "../../utils/dates.js";
+import { formatSeoulIso, toSeoulDateString } from "../../utils/dates.js";
 import { convertWgs84ToKmaGrid } from "./kmaGrid.js";
+import { resolveUltraSrtNcstBase, resolveVilageFcstBase } from "./kmaBaseTime.js";
 import type { KmaForecastPoint, WeatherRequest } from "./weatherTypes.js";
 
 interface KmaItem {
   readonly category?: string;
   readonly obsrValue?: string;
   readonly fcstValue?: string;
+  readonly fcstDate?: string;
+  readonly fcstTime?: string;
 }
 
 function parseNumber(value: string | undefined): number | null {
@@ -58,8 +61,11 @@ export class KmaWeatherProvider {
   constructor(private readonly config: AppConfig) {}
 
   async getWeather(requestInput: WeatherRequest): Promise<KmaForecastPoint> {
-    if (this.config.MOCK_PROVIDERS || !this.config.KMA_SERVICE_KEY) {
+    if (this.config.MOCK_PROVIDERS) {
       return this.getMockWeather(requestInput);
+    }
+    if (!this.config.KMA_SERVICE_KEY) {
+      throw new AppError({ code: ERROR_CODES.WEATHER_UNAVAILABLE, provider: "KMA" });
     }
     const grid = convertWgs84ToKmaGrid(requestInput.location);
     const baseUrl = this.config.KMA_BASE_URL ?? "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0";
@@ -71,6 +77,11 @@ export class KmaWeatherProvider {
     url.searchParams.set("dataType", "JSON");
     url.searchParams.set("nx", String(grid.nx));
     url.searchParams.set("ny", String(grid.ny));
+    const base = requestInput.mode === "today"
+      ? resolveUltraSrtNcstBase(new Date())
+      : resolveVilageFcstBase(new Date());
+    url.searchParams.set("base_date", base.baseDate);
+    url.searchParams.set("base_time", base.baseTime);
 
     const response = await withTimeout(
       request(url, { method: "GET" }),
@@ -83,8 +94,11 @@ export class KmaWeatherProvider {
     if (response.statusCode >= 500) {
       throw new AppError({ code: ERROR_CODES.WEATHER_UNAVAILABLE, provider: "KMA", status: response.statusCode, retryable: true });
     }
+    if (response.statusCode >= 400) {
+      throw new AppError({ code: ERROR_CODES.WEATHER_UNAVAILABLE, provider: "KMA", status: response.statusCode });
+    }
     const body = (await response.body.json()) as unknown;
-    return parseKmaResponse(body);
+    return parseKmaResponseForRequest(body, requestInput);
   }
 
   private getMockWeather(requestInput: WeatherRequest): KmaForecastPoint {
@@ -170,6 +184,27 @@ export function parseKmaResponse(body: unknown): KmaForecastPoint {
     throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "KMA" });
   }
   return parseKmaItems(items);
+}
+
+function parseKmaResponseForRequest(body: unknown, weatherRequest: WeatherRequest): KmaForecastPoint {
+  if (typeof body !== "object" || body === null) {
+    throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "KMA" });
+  }
+  const response = (body as { response?: { body?: { items?: { item?: KmaItem[] } } } }).response;
+  const items = response?.body?.items?.item;
+  if (!Array.isArray(items)) {
+    throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "KMA" });
+  }
+  const targetDate = toSeoulDateString(weatherRequest.start).replaceAll("-", "");
+  const forecastItems = items.filter((item) => item.fcstDate !== undefined);
+  if (forecastItems.length === 0) {
+    return parseKmaItems(items);
+  }
+  const selectedDate = forecastItems.find((item) => item.fcstDate === targetDate)?.fcstDate
+    ?? forecastItems.find((item) => item.fcstDate && item.fcstDate >= targetDate)?.fcstDate;
+  const forDate = forecastItems.filter((item) => item.fcstDate === selectedDate);
+  const selectedTime = forDate[0]?.fcstTime;
+  return parseKmaItems(forDate.filter((item) => item.fcstTime === selectedTime));
 }
 
 export function createKmaSourceMetadata(cached = false) {

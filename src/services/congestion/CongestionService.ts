@@ -61,7 +61,7 @@ export class CongestionService {
       populationMin: null,
       populationMax: null,
       message: "혼잡도 정보는 확인 불가입니다.",
-      source: { provider: "mock", fetchedAt: formatSeoulIso(new Date()), cached: false }
+      source: { provider: "fallback", fetchedAt: formatSeoulIso(new Date()), cached: false }
     };
   }
 }

@@ -23,7 +23,7 @@ export interface CongestionResult {
   readonly populationMax: number | null;
   readonly message: string | null;
   readonly source: {
-    readonly provider: "Seoul Realtime City Data" | "mock";
+    readonly provider: "Seoul Realtime City Data" | "mock" | "fallback";
     readonly fetchedAt: string;
     readonly cached: boolean;
   } | null;

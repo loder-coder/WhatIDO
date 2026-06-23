@@ -25,6 +25,7 @@ export interface ToolEnvelope {
       readonly recommendation_bias: string;
     };
     readonly recommendation_direction: string;
+    readonly overview: string;
   };
   readonly recommendations: readonly RankedRecommendation[];
   readonly warnings: readonly UserFacingError[];
@@ -70,6 +71,7 @@ export function createErrorEnvelope(input: {
         discomfort_level: "unknown",
         recommendation_bias: "unknown"
       },
+      overview: "추천을 준비하지 못했습니다.",
       recommendation_direction: "입력 또는 외부 데이터 오류로 추천을 생성하지 못했습니다."
     },
     recommendations: [],
@@ -116,7 +118,8 @@ export function createSuccessEnvelope(input: {
         discomfort_level: input.weather.discomfortLevel,
         recommendation_bias: input.weather.recommendationBias
       },
-      recommendation_direction: getRecommendationDirection(input.weather.recommendationBias, input.intent)
+      recommendation_direction: getRecommendationDirection(input.weather.recommendationBias, input.intent),
+      overview: buildNaturalLanguageOverview(input.locationLabel, input.weather, input.intent)
     },
     recommendations: input.recommendations,
     warnings: input.warnings,
@@ -125,8 +128,8 @@ export function createSuccessEnvelope(input: {
       request_id: input.requestId,
       generated_at: formatSeoulIso(new Date()),
       data_freshness: {
-        weather: input.isMockData ? "mock" : input.weather.source.cached ? "cached" : "fresh",
-        events: input.isMockData ? "mock" : "fresh",
+        weather: input.isMockData ? "mock" : input.weather.source.provider === "fallback" ? "missing" : input.weather.source.cached ? "cached" : "fresh",
+        events: input.missingData.includes("events") ? "missing" : input.isMockData ? "mock" : "fresh",
         congestion: input.missingData.includes("congestion") ? "missing" : input.isMockData ? "mock" : "fresh"
       },
       mock_data: {
@@ -146,6 +149,16 @@ function getRecommendationDirection(bias: string, intent: Intent): string {
   if (bias === "outdoor") return "쾌적한 날씨를 활용할 수 있는 야외 활동도 반영했습니다.";
   if (intent === "weekend") return "주말은 무료 여부와 날씨 안정성을 더 강하게 반영했습니다.";
   return "날씨, 거리, 무료 여부, 혼잡도를 균형 있게 반영했습니다.";
+}
+
+function buildNaturalLanguageOverview(location: string, weather: WeatherSnapshot, intent: Intent): string {
+  const day = intent === "today" ? "오늘" : intent === "tomorrow" ? "내일" : "다가오는 주말";
+  if (weather.temperatureC === null) {
+    return `${day} ${location}의 날씨는 확인하지 못해, 행사 일정과 비용·혼잡도 정보를 중심으로 추천했습니다.`;
+  }
+  const rain = weather.precipitationProbability !== null && weather.precipitationProbability >= 60;
+  const condition = rain ? "비 예보가 있어 실내 활동을 우선했습니다" : weather.recommendationBias === "outdoor" ? "야외 활동에 비교적 적합합니다" : "날씨 부담을 줄이는 활동을 우선했습니다";
+  return `${day} ${location}은 ${weather.temperatureC}°C이며 ${condition}.`;
 }
 
 export function toMcpTextResponse(response: ToolEnvelope) {
