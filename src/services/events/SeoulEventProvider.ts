@@ -3,6 +3,7 @@ import type { AppConfig } from "../../config/env.js";
 import { AppError } from "../../errors/AppError.js";
 import { ERROR_CODES } from "../../errors/errorCodes.js";
 import { formatSeoulIso, toSeoulDateString } from "../../utils/dates.js";
+import { calculateHaversineKm, normalizeSeoulDistrict } from "../../utils/geo.js";
 import { withTimeout } from "../../utils/timeout.js";
 import { readUtf8Json } from "../../utils/responseDecoding.js";
 import { inferEnvironment } from "./environmentInference.js";
@@ -100,6 +101,26 @@ export function parseSeoulEventRows(rows: readonly SeoulEventRow[]): ActivityCan
   });
 }
 
+const LOCATION_RADIUS_KM = 5;
+
+export function filterEventsByLocation(
+  candidates: readonly ActivityCandidate[],
+  eventRequest: Pick<EventSearchRequest, "district" | "coordinates">
+): ActivityCandidate[] {
+  const district = normalizeSeoulDistrict(eventRequest.district);
+  if (eventRequest.coordinates) {
+    const origin = eventRequest.coordinates;
+    return candidates.filter(
+      (candidate) =>
+        candidate.coordinates !== null &&
+        calculateHaversineKm(origin, candidate.coordinates) <= LOCATION_RADIUS_KM
+    );
+  }
+  return district
+    ? candidates.filter((candidate) => normalizeSeoulDistrict(candidate.district) === district)
+    : [...candidates];
+}
+
 export class SeoulEventProvider {
   constructor(private readonly config: AppConfig) {}
 
@@ -111,7 +132,7 @@ export class SeoulEventProvider {
       throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Seoul Open Data" });
     }
     const baseUrl = this.config.SEOUL_OPEN_DATA_BASE_URL ?? "http://openapi.seoul.go.kr:8088";
-    const url = `${baseUrl.replace(/\/$/, "")}/${this.config.SEOUL_OPEN_DATA_API_KEY}/json/culturalEventInfo/1/100`;
+    const url = `${baseUrl.replace(/\/$/, "")}/${this.config.SEOUL_OPEN_DATA_API_KEY}/json/culturalEventInfo/1/1000`;
     const response = await withTimeout(request(url, { method: "GET" }), 3000, "Seoul event request timed out");
     if (response.statusCode === 401 || response.statusCode === 403) {
       throw new AppError({ code: ERROR_CODES.AUTH_ERROR, provider: "Seoul Open Data", status: response.statusCode });
@@ -127,7 +148,7 @@ export class SeoulEventProvider {
     if (!Array.isArray(rows)) {
       throw new AppError({ code: ERROR_CODES.PROVIDER_ERROR, provider: "Seoul Open Data" });
     }
-    return parseSeoulEventRows(rows);
+    return filterEventsByLocation(parseSeoulEventRows(rows), searchRequest);
   }
 }
 

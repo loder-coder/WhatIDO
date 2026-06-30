@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { InMemoryCache } from "../../../src/services/cache/InMemoryCache.js";
 import { CulturePortalProvider, parseCulturePortalItems } from "../../../src/services/events/CulturePortalProvider.js";
 import { EventService } from "../../../src/services/events/EventService.js";
-import { getMockSeoulEvents, parseSeoulEventRows, SeoulEventProvider } from "../../../src/services/events/SeoulEventProvider.js";
+import { filterEventsByLocation, getMockSeoulEvents, parseSeoulEventRows, SeoulEventProvider } from "../../../src/services/events/SeoulEventProvider.js";
 import { deduplicateCandidates, filterCandidatesByDate } from "../../../src/services/events/eventFilters.js";
 import { inferEnvironment } from "../../../src/services/events/environmentInference.js";
 import { parsePriceText } from "../../../src/services/events/priceParser.js";
@@ -112,6 +112,19 @@ describe("Event Service", () => {
     });
     expect(candidates.length).toBeGreaterThan(0);
     expect(candidates.every((candidate) => candidate.priceType === "free")).toBe(true);
+  });
+
+  it("filters Seoul events to the user's district or five-kilometer radius", () => {
+    const candidates = parseSeoulEventRows([
+      { TITLE: "강남 행사", PLACE: "강남", GUNAME: "강남구", LAT: "37.5172", LOT: "127.0473" },
+      { TITLE: "마포 행사", PLACE: "마포", GUNAME: "마포구", LAT: "37.5663", LOT: "126.9016" }
+    ]);
+    expect(filterEventsByLocation(candidates, { district: "강남", coordinates: null }).map((item) => item.title))
+      .toEqual(["강남 행사"]);
+    expect(filterEventsByLocation(candidates, {
+      district: null,
+      coordinates: { latitude: 37.5172, longitude: 127.0473 }
+    }).map((item) => item.title)).toEqual(["강남 행사"]);
   });
 
   it("provides mock candidates for indoor, outdoor, price, distance, and congestion scenarios", () => {

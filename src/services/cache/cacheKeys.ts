@@ -27,8 +27,11 @@ export const CacheKeyBuilder = {
   weather(input: { mode: string; coordinates: Coordinates; hourKey: string }) {
     return `weather:${input.mode}:${buildLocationHash(input.coordinates)}:${input.hourKey}`;
   },
-  events(input: { intent: string; district: string | null; dateKey: string; freePreferred: boolean }) {
-    return `events:${input.intent}:${hash(input.district ?? "seoul")}:${input.dateKey}:${input.freePreferred}`;
+  events(input: { intent: string; district: string | null; coordinates: Coordinates | null; dateKey: string; freePreferred: boolean }) {
+    const location = input.coordinates
+      ? `${input.coordinates.latitude.toFixed(2)},${input.coordinates.longitude.toFixed(2)}:${input.district ?? "unknown"}`
+      : `district:${input.district ?? "unknown"}`;
+    return `events:${input.intent}:${hash(location)}:${input.dateKey}:${input.freePreferred}`;
   },
   congestion(areaName: string) {
     return `congestion:${hash(areaName)}`;

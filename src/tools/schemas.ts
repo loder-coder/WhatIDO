@@ -33,15 +33,15 @@ export const RecommendationToolInputSchema = {
         .string()
         .min(1)
         .optional()
-        .describe("서울 자치구 이름. 예: 송파구, 마포구, 중구"),
+        .describe("Specific Seoul district or neighborhood, such as 강남구, 홍대, or 잠실."),
       place_name: z.string().optional(),
-      latitude: z.number().min(33).max(39).optional(),
-      longitude: z.number().min(124).max(132).optional(),
-      lat: z.number().min(37).max(38).optional(),
-      lng: z.number().min(126).max(128).optional()
+      latitude: z.number().min(33).max(39).optional().describe("Latitude; synonym: lat."),
+      longitude: z.number().min(124).max(132).optional().describe("Longitude; synonym: lng."),
+      lat: z.number().min(33).max(39).optional().describe("Latitude; synonym of latitude."),
+      lng: z.number().min(124).max(132).optional().describe("Longitude; synonym of longitude.")
     })
     .optional()
-    .describe("사용자의 현재 또는 기준 위치"),
+    .describe("The user's current or reference location. If it is unknown, ask for a specific Seoul district or neighborhood before calling this tool."),
   query: z.string().min(1).max(300).describe("사용자 자연어 요청"),
   companions: CompanionSchema.default("unknown").optional(),
   preferences: PreferenceSchema,

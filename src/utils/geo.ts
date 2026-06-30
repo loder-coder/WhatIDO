@@ -40,6 +40,38 @@ export const SEOUL_DISTRICT_CENTERS: Record<string, Coordinates> = {
   중랑구: { latitude: 37.6063, longitude: 127.0925 }
 };
 
+const SEOUL_NEIGHBORHOOD_ALIASES: Record<string, string> = {
+  강남역: "강남구",
+  을지로: "중구",
+  홍대: "마포구",
+  홍대입구: "마포구",
+  여의도: "영등포구",
+  잠실: "송파구",
+  서울숲: "성동구"
+};
+
+function compactLocationName(value: string): string {
+  return value.trim().replace(/\s+/g, "").replace(/(?:근처|인근|주변)$/u, "");
+}
+
+export function normalizeSeoulDistrict(district: string | null | undefined): string | null {
+  if (!district) return null;
+  const compact = compactLocationName(district);
+  if (!compact) return null;
+  if (SEOUL_DISTRICT_CENTERS[compact]) return compact;
+  if (SEOUL_NEIGHBORHOOD_ALIASES[compact]) return SEOUL_NEIGHBORHOOD_ALIASES[compact] ?? null;
+
+  const withoutSeoul = compact.replace(/^(?:서울특별시|서울시|서울)/u, "");
+  if (SEOUL_DISTRICT_CENTERS[withoutSeoul]) return withoutSeoul;
+  const suffixed = withoutSeoul.endsWith("구") ? withoutSeoul : `${withoutSeoul}구`;
+  if (SEOUL_DISTRICT_CENTERS[suffixed]) return suffixed;
+
+  const partialMatches = Object.keys(SEOUL_DISTRICT_CENTERS).filter(
+    (name) => withoutSeoul.includes(name) || name.replace(/구$/u, "") === withoutSeoul
+  );
+  return partialMatches.length === 1 ? partialMatches[0] ?? null : null;
+}
+
 export function validateCoordinates(coordinates: Coordinates): Coordinates {
   const parsed = KoreaCoordinateSchema.safeParse(coordinates);
   if (!parsed.success) {
@@ -52,14 +84,12 @@ export function validateCoordinates(coordinates: Coordinates): Coordinates {
 }
 
 export function isSeoulDistrict(district: string | null | undefined): boolean {
-  return Boolean(district && SEOUL_DISTRICT_CENTERS[district]);
+  return normalizeSeoulDistrict(district) !== null;
 }
 
 export function getDistrictCenter(district: string | null | undefined): Coordinates | null {
-  if (!district) {
-    return null;
-  }
-  return SEOUL_DISTRICT_CENTERS[district] ?? null;
+  const normalized = normalizeSeoulDistrict(district);
+  return normalized ? SEOUL_DISTRICT_CENTERS[normalized] ?? null : null;
 }
 
 export function calculateHaversineKm(origin: Coordinates, destination: Coordinates): number {

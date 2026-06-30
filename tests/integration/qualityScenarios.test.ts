@@ -36,7 +36,7 @@ describe("Recommendation quality and degraded scenarios", () => {
         deps()
       )
     );
-    expect(body.status).toBe("partial_success");
+    expect(body.status).toBe("needs_location");
     expect(body.warnings.some((warning) => warning.code === "LOCATION_MISSING")).toBe(true);
     expect(body.missing_data).toContain("location");
   });

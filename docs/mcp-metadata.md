@@ -29,6 +29,9 @@
 Every public tool declares an English description containing WhatIDO(뭐하지?) and
 the following MCP annotations: `title`, `readOnlyHint: true`,
 `destructiveHint: false`, `openWorldHint: true`, and `idempotentHint: true`.
+The description also requires the calling agent to ask for a Seoul district,
+neighborhood, or coordinates before invocation. A location-less invocation
+returns `needs_location` without recommendations.
 
 ### `today_what_to_do`
 

@@ -37,4 +37,18 @@ describe("Cache layer", () => {
     expect(locationHash).not.toContain("37.5145");
     expect(CacheKeyBuilder.recommendation({ intent: "today", contextKey: "abc" })).toContain("v1");
   });
+
+  it("separates event cache buckets by rounded coordinates", () => {
+    const base = { intent: "today", district: null, dateKey: "2026-06-30", freePreferred: false };
+    const gangnam = CacheKeyBuilder.events({
+      ...base,
+      coordinates: { latitude: 37.5172, longitude: 127.0473 }
+    });
+    const mapo = CacheKeyBuilder.events({
+      ...base,
+      coordinates: { latitude: 37.5663, longitude: 126.9016 }
+    });
+    expect(gangnam).not.toBe(mapo);
+    expect(gangnam).not.toContain("37.5172");
+  });
 });

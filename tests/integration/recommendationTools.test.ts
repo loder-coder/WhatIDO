@@ -133,7 +133,7 @@ describe("Recommendation public tools", () => {
     expect(body.recommendations.length).toBeGreaterThan(0);
   });
 
-  it("uses the Seoul default location to fetch weather when no location is supplied", async () => {
+  it("asks for a location instead of using the Seoul default when no location is supplied", async () => {
     const body = parseToolResponse(
       await tomorrowWhatToDoHandler(
         {
@@ -145,8 +145,8 @@ describe("Recommendation public tools", () => {
       )
     ) as { summary?: { weather?: { temperature_c?: number | null } }; recommendations: unknown[] };
 
-    expect(body.summary?.weather?.temperature_c).not.toBeNull();
-    expect(body.recommendations.length).toBeGreaterThan(0);
+    expect(body.summary?.weather?.temperature_c).toBeNull();
+    expect(body.recommendations).toHaveLength(0);
   });
 
   it("weekend_what_to_do returns weekend summary and plan B flag", async () => {

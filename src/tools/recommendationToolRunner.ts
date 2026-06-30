@@ -4,7 +4,7 @@ import { ERROR_CODES } from "../errors/errorCodes.js";
 import { getIntentDateWindow, type Intent } from "../utils/dates.js";
 import { isSeoulDistrict } from "../utils/geo.js";
 import type { RecommendationToolInput } from "./schemas.js";
-import { createErrorEnvelope, createSuccessEnvelope, createWarning, toMcpTextResponse } from "./toolResponse.js";
+import { createErrorEnvelope, createNeedsLocationEnvelope, createSuccessEnvelope, createWarning, toMcpTextResponse } from "./toolResponse.js";
 import type { TransportMode } from "../services/location/locationTypes.js";
 import type { ActivityCandidate } from "../services/events/eventTypes.js";
 import { createFallbackRecommendations } from "../services/recommendation/fallbackRecommendations.js";
@@ -20,6 +20,12 @@ export async function runRecommendationTool(intent: Intent, input: Recommendatio
       const now = input.requestedAt ? new Date(input.requestedAt) : new Date();
       const window = getIntentDateWindow(intent, now);
       const locationInput = input.location ?? {};
+      const hasCoordinates =
+        (locationInput.latitude !== undefined && locationInput.longitude !== undefined) ||
+        (locationInput.lat !== undefined && locationInput.lng !== undefined);
+      if (!hasCoordinates && !locationInput.district?.trim()) {
+        return toMcpTextResponse(createNeedsLocationEnvelope({ intent, requestId: context.requestId, window }));
+      }
       const location = context.services.location.resolveLocation(locationInput);
       const warnings = [];
       const missingData: string[] = [];
@@ -33,7 +39,7 @@ export async function runRecommendationTool(intent: Intent, input: Recommendatio
       const freePreferred = input.preferences?.free_preferred ?? input.freeOnly ?? /무료/.test(input.query);
       const lowCrowdPreferred = input.preferences?.low_crowd_preferred ?? /조용|사람 적|한적/.test(input.query);
       let candidates: ActivityCandidate[] = [];
-      try { candidates = await context.services.events.searchCandidates({ start: window.start, end: window.end, district: location.district, freePreferred, intent, now }); }
+      try { candidates = await context.services.events.searchCandidates({ start: window.start, end: window.end, district: location.district, coordinates: location.coordinates, freePreferred, intent, now }); }
       catch { warnings.push(createWarning(ERROR_CODES.EVENTS_UNAVAILABLE)); missingData.push("events"); }
 
       const transportMode: TransportMode = input.preferences?.transport_mode ?? "public_transit";

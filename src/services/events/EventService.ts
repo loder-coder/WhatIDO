@@ -18,6 +18,7 @@ export class EventService {
     const cacheKey = CacheKeyBuilder.events({
       intent: request.intent,
       district: request.district,
+      coordinates: request.coordinates,
       dateKey: `${request.start.toISOString().slice(0, 10)}:${request.end.toISOString().slice(0, 10)}`,
       freePreferred: request.freePreferred
     });

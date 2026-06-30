@@ -45,6 +45,7 @@ export interface EventSearchRequest {
   readonly start: Date;
   readonly end: Date;
   readonly district: string | null;
+  readonly coordinates: Coordinates | null;
   readonly freePreferred: boolean;
   readonly intent: "today" | "tomorrow" | "weekend";
   readonly now: Date;

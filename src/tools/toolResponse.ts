@@ -5,7 +5,7 @@ import { formatSeoulIso } from "../utils/dates.js";
 import type { RankedRecommendation } from "../services/recommendation/recommendationTypes.js";
 import type { WeatherSnapshot } from "../services/weather/weatherTypes.js";
 
-export type ToolStatus = "success" | "partial_success" | "error";
+export type ToolStatus = "success" | "partial_success" | "needs_location" | "error";
 
 export interface ToolEnvelope {
   readonly status: ToolStatus;
@@ -80,6 +80,40 @@ export function createErrorEnvelope(input: {
     metadata: {
       request_id: input.requestId,
       generated_at: formatSeoulIso(now),
+      data_freshness: {},
+      mock_data: { enabled: false, notice: null, weather_scenario: null }
+    }
+  };
+}
+
+export function createNeedsLocationEnvelope(input: {
+  readonly intent: Intent;
+  readonly requestId: string;
+  readonly window: DateWindow;
+}): ToolEnvelope {
+  return {
+    status: "needs_location",
+    intent: input.intent,
+    summary: {
+      location_label: "위치 확인 필요",
+      time_window: { start: formatSeoulIso(input.window.start), end: formatSeoulIso(input.window.end) },
+      weather: {
+        temperature_c: null,
+        humidity_percent: null,
+        precipitation_probability: null,
+        discomfort_index: null,
+        discomfort_level: "unknown",
+        recommendation_bias: "unknown"
+      },
+      overview: "서울 내 구체적인 동이나 구를 알려주시면 위치에 맞춰 추천해드릴게요.",
+      recommendation_direction: "예: 강남구, 홍대, 잠실 또는 현재 좌표"
+    },
+    recommendations: [],
+    warnings: [createWarning(ERROR_CODES.LOCATION_MISSING)],
+    missing_data: ["location"],
+    metadata: {
+      request_id: input.requestId,
+      generated_at: formatSeoulIso(new Date()),
       data_freshness: {},
       mock_data: { enabled: false, notice: null, weather_scenario: null }
     }

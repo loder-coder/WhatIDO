@@ -1,4 +1,4 @@
-import { calculateHaversineKm, getDistrictCenter, type Coordinates } from "../../utils/geo.js";
+import { calculateHaversineKm, getDistrictCenter, normalizeSeoulDistrict, type Coordinates } from "../../utils/geo.js";
 import type { DistanceDestination, DistanceResult, TransportMode } from "./locationTypes.js";
 
 export const SEOUL_DEFAULT_COORDINATES: Coordinates = {
@@ -13,17 +13,24 @@ export class LocationService {
     readonly lat?: number | undefined;
     readonly lng?: number | undefined;
     readonly district?: string | undefined;
-  }): { coordinates: Coordinates; district: string | null; approximated: boolean } {
+  }): { coordinates: Coordinates; district: string | null; approximated: boolean; fallbackUsed: boolean } {
     const latitude = input.latitude ?? input.lat;
     const longitude = input.longitude ?? input.lng;
     if (latitude !== undefined && longitude !== undefined) {
-      return { coordinates: { latitude, longitude }, district: input.district ?? null, approximated: false };
+      return {
+        coordinates: { latitude, longitude },
+        district: normalizeSeoulDistrict(input.district) ?? input.district ?? null,
+        approximated: false,
+        fallbackUsed: false
+      };
     }
-    const center = getDistrictCenter(input.district);
+    const district = normalizeSeoulDistrict(input.district);
+    const center = getDistrictCenter(district);
     return {
       coordinates: center ?? SEOUL_DEFAULT_COORDINATES,
-      district: input.district ?? "서울특별시",
-      approximated: true
+      district: district ?? input.district ?? "서울특별시",
+      approximated: true,
+      fallbackUsed: center === null
     };
   }
 
