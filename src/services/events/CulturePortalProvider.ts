@@ -7,6 +7,7 @@ import { toSeoulDateString } from "../../utils/dates.js";
 import { withTimeout } from "../../utils/timeout.js";
 import { inferEnvironment } from "./environmentInference.js";
 import { parsePriceText } from "./priceParser.js";
+import { filterEventsByLocation } from "./SeoulEventProvider.js";
 import type { ActivityCandidate, EventSearchRequest } from "./eventTypes.js";
 
 interface CulturePortalItem {
@@ -122,6 +123,9 @@ export class CulturePortalProvider {
     if (response.statusCode >= 400) {
       throw new AppError({ code: ERROR_CODES.EVENTS_UNAVAILABLE, provider: "Culture Portal", status: response.statusCode });
     }
-    return parseCulturePortalItems(readCulturePortalItems((await response.body.json()) as CulturePortalResponse));
+    const items = parseCulturePortalItems(
+      readCulturePortalItems((await response.body.json()) as CulturePortalResponse)
+    );
+    return filterEventsByLocation(items, searchRequest);
   }
 }

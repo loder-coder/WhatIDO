@@ -108,17 +108,20 @@ export function filterEventsByLocation(
   eventRequest: Pick<EventSearchRequest, "district" | "coordinates">
 ): ActivityCandidate[] {
   const district = normalizeSeoulDistrict(eventRequest.district);
-  if (eventRequest.coordinates) {
-    const origin = eventRequest.coordinates;
-    return candidates.filter(
-      (candidate) =>
-        candidate.coordinates !== null &&
-        calculateHaversineKm(origin, candidate.coordinates) <= LOCATION_RADIUS_KM
-    );
-  }
-  return district
-    ? candidates.filter((candidate) => normalizeSeoulDistrict(candidate.district) === district)
-    : [...candidates];
+  const origin = eventRequest.coordinates ?? null;
+
+  return candidates.filter((candidate) => {
+    // 좌표가 둘 다 있으면 반경(5km)으로 판단
+    if (origin && candidate.coordinates) {
+      return calculateHaversineKm(origin, candidate.coordinates) <= LOCATION_RADIUS_KM;
+    }
+    // 이벤트에 좌표가 없으면 district 매칭으로 폴백
+    if (district) {
+      return normalizeSeoulDistrict(candidate.district) === district;
+    }
+    // 위치 정보가 전혀 없으면 전체 반환
+    return true;
+  });
 }
 
 export class SeoulEventProvider {
